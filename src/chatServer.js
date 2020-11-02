@@ -4,9 +4,10 @@ const express = require("express");
 const cors = require("cors");
 
 const Chat = require("./Models/Chat.js");
+const Message = require("./Models/Message.js");
 
 const port = process.env.PORT || 5004;
-const frontUrl = "http://localhost:3000";
+const frontUrl = process.env.FRONTURL;
 
 const app = express();
 const server = app.listen(port, () => console.log(`Server running on port ${port}.`));
@@ -25,11 +26,61 @@ const main = async () => {
     socket.on("connection", async (client) => {
       console.log("client connected...");
 
-      client.on("newMessage", async (msg) => {
+      client.on("connection", async (msg) => {
         console.log(msg);
-        let createdMessage = await Chat.create({ message: [{ content: msg }] });
-        let newMessage = await Chat.find({ _id: createdMessage._id });
-        socket.emit("message", newMessage);
+        const content = msg.content;
+        const idUser = msg.idUser;
+        const chatPartnerId = msg.chatPartnerId;
+        const typeOfUser = msg.typeOfUser;
+
+        try {
+          //find chat and return the last 10 messages sent in order from latest to newest to display in chat window
+          const getMessages = await Chat.findOne({ id_project: idUser, id_developer: chatPartnerId }).populate({
+            path: "textMessages",
+            options: { sort: { date: -1 }, limit: 10 },
+          });
+
+          getMessages.textMessages = getMessages.textMessages.reverse();
+
+          socket.emit("latestMessages", getMessages);
+        } catch (error) {
+          console.log(error);
+        }
+      });
+
+      client.on("newMessage", async (msg) => {
+        try {
+          const content = msg.content;
+          const idUser = msg.idUser;
+          const chatPartnerId = msg.chatPartnerId;
+          const typeOfUser = msg.typeOfUser;
+
+          //if there was no chat before between chat partners
+          /* const checkChatExistance = await Chat.find({ _id: createdChat._id }); */
+
+          const createdMessage = await Message.create({ content: content, id_user: idUser, typeOfUser: typeOfUser });
+
+          //check for existent corresponsing chat, if exists push to content array, if not create Chat
+
+          let checkChatProject = await Chat.findOne({ id_project: idUser, id_developer: chatPartnerId });
+          let checkChatDeveloper = await Chat.findOne({ id_project: chatPartnerId, id_developer: idUser });
+          let createdChat = {};
+          let messageId = createdMessage._id;
+
+          if (!checkChatProject && !checkChatDeveloper) {
+            typeOfUser === "Project"
+              ? (createdChat = await Chat.create({ id_project: idUser, id_developer: chatPartnerId }, { $push: { textMessages: messageId } }))
+              : (createdChat = await Chat.create({ id_project: chatPartnerId, id_developer: idUser }, { $push: { textMessages: messageId } }));
+          } else {
+            let addedMessage = {};
+            typeOfUser === "Project"
+              ? (addedMessage = await Chat.findOneAndUpdate({ _id: checkChatProject._id }, { $push: { textMessages: messageId } }))
+              : (addedMessage = await Chat.findOneAndUpdate({ _id: checkChatDeveloper._id }, { $push: { textMessages: messageId } }));
+          }
+          socket.emit("addedMessage", createdMessage);
+        } catch (error) {
+          console.log(error);
+        }
       });
     });
   } catch (error) {
@@ -38,31 +89,3 @@ const main = async () => {
 };
 
 main();
-
-/* client.on("message", async (msg) => {
-        let message = await Message.Schema.statics.create(msg);
-        socket.emit("message", message);
-      }); */
-
-/*  let latest = await Message.Schema.statics.latest(10);
-      client.emit("latest", latest); */
-
-/* const options = {...};
-const io = require("socket.io")(options);
-const Chat = require("./Models/Chat"); */
-
-/* io.on("connection", (socket) => {
-  socket.on("joinChat100", () => {
-    socket.join("room1", () => {
-      io.to("room1").emit("update", "Welcome to the room");
-    });
-  });
-  socket.on("joinChat200", () => {
-    socket.join("room2", () => {
-      io.to("room2").emit("update", "Welcome to the room");
-    });
-  });
-}); */
-
-/* io.listen(5004);
- */
