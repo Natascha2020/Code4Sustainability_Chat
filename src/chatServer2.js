@@ -26,7 +26,7 @@ const main = async () => {
     socket.on("connection", async (client) => {
       console.log("client connected...");
       console.log(" client-id:", client.id);
-      client.join("roomX");
+
       client.on("connection", async ({ idUser, chatPartnerId, typeOfUser }) => {
         try {
           let checkChatProject = await Chat.findOne({ id_project: idUser, id_developer: chatPartnerId });
@@ -50,7 +50,7 @@ const main = async () => {
             getMessages.textMessages = getMessages.textMessages.reverse();
           }
 
-          socket.to("roomX").emit("latestMessages", getMessages);
+          socket.to(client.id).emit("latestMessages", getMessages);
         } catch (error) {
           console.log(error);
         }
@@ -84,7 +84,7 @@ const main = async () => {
               ? (addedMessage = await Chat.findOneAndUpdate({ _id: checkChatProject._id }, { $push: { textMessages: messageId } }))
               : (addedMessage = await Chat.findOneAndUpdate({ _id: checkChatDeveloper._id }, { $push: { textMessages: messageId } }));
           }
-          socket.to("roomX").emit("addedMessage", createdMessage);
+          socket.to(client.id).emit("addedMessage", createdMessage);
         } catch (error) {
           console.log(error);
         }
