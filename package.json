@@ -2,10 +2,9 @@
   "name": "Code4Sustainability_Chat_Server",
   "version": "1.0.0",
   "description": "",
-  "main": "src/chatServer.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon chatServer.js"
+    "start": "node ./src/chatServer.js"
   },
   "keywords": [],
   "author": "",
