@@ -1,6 +1,6 @@
 # Code4Sustainability_Chat
 
-#### Chat server using socket.io
+##### -> Chat server using socket.io
 
 ### Connecting developers with sustainable projects, initiatives and startUps.
 **"Join for the challenge, stay for the people!"**
